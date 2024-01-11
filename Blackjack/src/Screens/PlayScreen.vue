@@ -1,33 +1,44 @@
 <template>
   <div class="gameContainer">
     <div class="cardArea" id="dealer">
-      <TransitionGroup name="hand" class="hand" tag="div">
+      <TransitionGroup name="hand" class="hand" id="dealerHand" tag="div" v-show="roundActive">
         <div class="card" v-for="card in dealerHand" :key="card.code">
-          <img v-show="card !== dealerHand[0] || showCard" :src="card.image" alt="Card Image"/>
-          <img v-show="card === dealerHand[0] && !showCard" :src="cardBackImage"  alt="back of card"/>
+          <img v-show="card !== dealerHand[0] || showCard" :src="card.image" alt="Card Image" />
+          <img
+            v-show="card === dealerHand[0] && !showCard"
+            :src="cardBackImage"
+            alt="back of card"
+          />
         </div>
       </TransitionGroup>
     </div>
     <div class="points">
-      <p class="pointsDealer">{{ calculateHandValue(dealerHand) }}</p>
+      <p class="pointsDealer">{{ calculateDealerPoints(dealerHand) }}</p>
     </div>
     <div class="middleArea">
-      <p>Money: <br />{{money}}</p>
-      <button @click="stay">Stay</button>
-      <button @click="hit">Hit</button>
-      <button v-if="!roundActive" @click="deal">Deal</button>
-      <p>Bet: <br />{{betMoney}}</p>
+      <p>Money: <br />{{ money }}</p>
+      <button @click="stay" :disabled="disableButtons">Stay</button>
+      <button @click="hit" :disabled="disableButtons">Hit</button>
+      <button v-if="!roundActive" @click="deal" :disabled="betMoney <= 0">Bet</button>
+      <p>Bet: <br />{{ betMoney }}</p>
     </div>
     <div class="points">
       <p class="pointsPlayer">{{ calculateHandValue(playerHand) }}</p>
     </div>
     <div class="cardArea" id="player">
-      <div class="chipArea">
+      <div class="chipArea" v-show="!roundActive">
         <div class="chips">
-          <Chip v-for="value in chipValues" @click="addBet(value)" :key="value" :chip-value="value" :chips-folder="chipsFolder" class="chip"/>
+          <Chip
+            v-for="value in chipValues"
+            @chipClicked="addBet"
+            :key="value"
+            :chip-value="value"
+            :chips-folder="chipsFolder"
+            class="chip"
+          />
         </div>
       </div>
-      <TransitionGroup name="hand" class="hand" tag="div">
+      <TransitionGroup name="hand" class="hand" id="playerHand" tag="div" v-show="roundActive">
         <div class="card" v-for="card in playerHand" :key="card.code">
           <img :src="card.image" alt="Card Image" />
         </div>
@@ -37,156 +48,192 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import Axios from 'axios';
+import { ref, onMounted } from 'vue'
+import Axios from 'axios'
 import Chip from '/src/components/Chip.vue'
 
-const apiUrl = 'https://deckofcardsapi.com/api/deck';
+const apiUrl = 'https://deckofcardsapi.com/api/deck'
 
-const apiKey = 'your-api-key'; // Replace with your actual API key
-let deckId = ref('');
-let playerHand = ref([]);
-let dealerHand = ref([]);
-let cardImages = ref({}); // Store preloaded card images
-let roundActive = false;
-let showCard = false;
-let preloaded = false;
+const apiKey = 'your-api-key' // Replace with your actual API key
+let deckId = ref('')
+let playerHand = ref([])
+let dealerHand = ref([])
+let cardImages = ref({}) // Store preloaded card images
+let roundActive = ref(false)
+let showCard = ref(false)
+let preloaded = ref(false)
 
-const chipValues = [5, 10, 20, 50, 100];
-let money = 200;
-let betMoney = 0;
+let disableButtons = ref(true)
 
-const cardBackImage = "/src/assets/cardBack.png"
-const chipsFolder = "/src/assets/"
+const chipValues = [5, 10, 20, 50, 100]
+let money = ref(200)
+let betMoney = ref(0)
+
+const cardBackImage = '/src/assets/cardBack.png'
+const chipsFolder = '/src/assets/'
 
 const shuffleDeck = async () => {
-  const numDecks = 6; // Change this number as needed
-  const response = await Axios.get(`${apiUrl}/new/shuffle/?deck_count=${numDecks}`);
-  deckId.value = response.data.deck_id;
-};
+  const numDecks = 6 // Change this number as needed
+  const response = await Axios.get(`${apiUrl}/new/shuffle/?deck_count=${numDecks}`)
+  deckId.value = response.data.deck_id
+}
 
 const deal = async () => {
-  roundActive = true;
-  await shuffleDeck();
+  disableButtons.value = false;
+  roundActive.value = true
+  await shuffleDeck()
 
-  const response = await Axios.get(`${apiUrl}/${deckId.value}/draw/?count=4`);
-  const cards = response.data.cards;
+  const response = await Axios.get(`${apiUrl}/${deckId.value}/draw/?count=4`)
+  const cards = response.data.cards
 
-  playerHand.value = cards.slice(0, 2).map(card => ({ ...card, image: card.image }));
-  dealerHand.value = cards.slice(2).map(card => ({ ...card, image: card.image }));
+  playerHand.value = cards.slice(0, 2).map((card) => ({ ...card, image: card.image }))
+  dealerHand.value = cards.slice(2).map((card) => ({ ...card, image: card.image }))
 
-  updateHands();
-};
+  updateHands()
+}
 
 const hit = () => {
-  Axios.get(`${apiUrl}/${deckId.value}/draw/?count=1`)
-      .then(response => {
-        playerHand.value.push({ ...response.data.cards[0], image: response.data.cards[0].image });
-        updateHands();
-      });
-
-  console.log(calculateHandValue(playerHand.value));
-};
+  Axios.get(`${apiUrl}/${deckId.value}/draw/?count=1`).then((response) => {
+    playerHand.value.push({ ...response.data.cards[0], image: response.data.cards[0].image })
+    updateHands()
+  })
+}
 
 const dealerDraw = async () => {
-  while (calculateHandValue(dealerHand.value) < 17) {
-    await Axios.get(`${apiUrl}/${deckId.value}/draw/?count=1`)
-        .then(response => {
-          dealerHand.value.push({ ...response.data.cards[0], image: response.data.cards[0].image });
-          updateHands();
-        });
+  if (calculateHandValue(dealerHand.value) < 17) {
+    await Axios.get(`${apiUrl}/${deckId.value}/draw/?count=1`).then((response) => {
+      dealerHand.value.push({ ...response.data.cards[0], image: response.data.cards[0].image })
+      updateHands()
+    })
+    setTimeout(() => {
+      dealerDraw();
+    }, 300)
   }
 }
 
 const roundLost = () => {
-  console.log("lost");
+  resetRound();
 }
 
 const roundWon = () => {
-  console.log("won");
+  money.value += betMoney.value * 2
+  resetRound();
+}
+
+const roundDraw = () => {
+  money.value += betMoney.value
+  resetRound();
+}
+
+const resetRound = () => {
+  disableButtons.value = true;
+  showCard.value = true;
+  setTimeout(() => {
+    betMoney.value = 0;
+    playerHand.value = [];
+    dealerHand.value = [];
+    roundActive.value = false;
+    showCard.value = false;
+  }, 2000)
 }
 
 const stay = async () => {
-  showCard = true;
+  disableButtons.value = true;
+  showCard.value = true;
   await dealerDraw();
-  if (calculateHandValue(dealerHand.value) >= 17 && calculateHandValue(dealerHand.value) <= 21) {
-    if (calculateHandValue(dealerHand.value) > calculateHandValue(playerHand.value)) {
-      roundLost();
-    } else if (calculateHandValue(dealerHand.value) < calculateHandValue(playerHand.value)) {
-      roundWon();
+  setTimeout(() => {
+    if (calculateHandValue(dealerHand.value) >= 17 && calculateHandValue(dealerHand.value) <= 21) {
+      if (calculateHandValue(dealerHand.value) > calculateHandValue(playerHand.value)) {
+        roundLost();
+      } else if (calculateHandValue(dealerHand.value) < calculateHandValue(playerHand.value)) {
+        roundWon();
+      } else {
+        roundDraw();
+      }
     } else {
-      console.log("draw i guess");
+      roundWon();
     }
-  } else {
-    roundWon();
-  }
+  }, 700)
 }
 
 const updateHands = () => {
-  // Example: Log hands to the console
-  console.log("Player's Hand:", playerHand.value);
-  console.log("Dealer's Hand:", dealerHand.value);
   if (calculateHandValue(playerHand.value) > 21) {
-    roundLost();
+    roundLost()
   }
-};
+}
 
 const calculateHandValue = (hand) => {
-  let value = 0;
-  let hasAce = false;
+  let value = 0
+  let hasAce = false
 
   for (const card of hand) {
-    const cardValue = card.value;
-    value += isNaN(cardValue) ? (cardValue === 'ACE' ? 11 : 10) : parseInt(cardValue);
+    const cardValue = card.value
+    value += isNaN(cardValue) ? (cardValue === 'ACE' ? 11 : 10) : parseInt(cardValue)
 
     if (cardValue === 'ACE') {
-      hasAce = true;
+      hasAce = true
     }
   }
 
   // Handle Aces
   if (hasAce && value > 21) {
-    value -= 10;
+    value -= 10
   }
 
-  return value;
-};
+  return value
+}
+
+const calculateDealerPoints = (dealerHand) => {
+  if (showCard.value) {
+    return calculateHandValue(dealerHand)
+  } else {
+    if (dealerHand.length > 0) {
+      let tempHand = dealerHand.map((x) => x);
+      tempHand.splice(0, 1);
+      console.log("Temp Hand")
+      console.log(tempHand)
+      return calculateHandValue(tempHand);
+    } else {
+      return 0;
+    }
+  }
+}
 
 const addBet = (value) => {
-  betMoney += value;
-  console.log(betMoney);
+  if (money.value - value >= 0) {
+    betMoney.value += value
+    money.value -= value
+  }
 }
 
 const preloadImages = async () => {
-  const deckIdResponse = await Axios.get(`${apiUrl}/new/shuffle/?deck_count=1`);
-  const deckId = deckIdResponse.data.deck_id;
+  const deckIdResponse = await Axios.get(`${apiUrl}/new/shuffle/?deck_count=1`)
+  const deckId = deckIdResponse.data.deck_id
 
-  const cardsResponse = await Axios.get(`${apiUrl}/${deckId}/draw/?count=52`);
-  const cards = cardsResponse.data.cards;
+  const cardsResponse = await Axios.get(`${apiUrl}/${deckId}/draw/?count=52`)
+  const cards = cardsResponse.data.cards
 
   const promises = cards.map((card) => {
     return new Promise((resolve) => {
-      const image = new Image();
+      const image = new Image()
       image.onload = () => {
-        cardImages.value[card.code] = image;
-        resolve();
-      };
-      image.src = card.image;
-    });
-  });
+        cardImages.value[card.code] = image
+        resolve()
+      }
+      image.src = card.image
+    })
+  })
 
-  await Promise.all(promises);
-  preloaded = true;
-  console.log("preloaded: " + preloaded);
-};
+  await Promise.all(promises)
+  preloaded.value = true
+}
 
 onMounted(() => {
-  preloadImages();
-});
+  preloadImages()
+})
 </script>
 
 <style lang="scss">
-
 * {
   margin: 0;
   padding: 0;
@@ -216,11 +263,17 @@ onMounted(() => {
   display: flex;
   flex-direction: row;
   justify-content: center;
-  align-items: flex-start;
   width: 100%;
   height: 90%;
   margin-left: 2.5rem;
   position: relative;
+}
+
+#playerHand {
+  align-items: flex-start;
+}
+#dealerHand {
+  align-items: flex-end;
 }
 
 .hand-move,
@@ -240,7 +293,6 @@ onMounted(() => {
 .hand-leave-to {
   opacity: 0;
 }
-
 
 .cardArea {
   height: 40%;
@@ -282,18 +334,20 @@ onMounted(() => {
     align-self: center;
   }
   button {
-    height: 2rem;
-    width: 3rem;
-    background-color: white;
-    border: 0.1rem solid black;
-    border-radius: 0.2rem;
+    height: 3rem;
+    width: 4rem;
+    background-color: #b58962;
+    border: 0.2rem solid #2c1807;
+    border-radius: 0.5rem;
+    margin: 0.1rem;
     position: relative;
     align-self: center;
+    font-size: 12pt;
+    font-weight: bold;
   }
 }
 
 .chipArea {
-
 }
 
 .chips {
@@ -314,7 +368,8 @@ onMounted(() => {
   background-color: #528045;
   .chip {
     margin: 0 2%;
-    border: 2px solid red;
+    pointer-events: all;
+    z-index: 100;
   }
   img {
     height: 35%;
@@ -322,5 +377,4 @@ onMounted(() => {
     pointer-events: none;
   }
 }
-
 </style>
