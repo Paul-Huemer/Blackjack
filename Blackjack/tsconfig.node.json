@@ -8,6 +8,8 @@
     "playwright.config.*"
   ],
   "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "composite": true,
     "noEmit": true,
     "module": "ESNext",
