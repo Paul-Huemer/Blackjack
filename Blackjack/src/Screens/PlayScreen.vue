@@ -19,8 +19,9 @@
       <p>Money: <br />{{ money }}</p>
       <button @click="stay" :disabled="disableButtons">Stay</button>
       <button @click="hit" :disabled="disableButtons">Hit</button>
-      <button v-if="!roundActive" @click="deal" :disabled="betMoney <= 0">Bet</button>
+      <button @click="deal" :disabled="betMoney <= 0 || roundActive">Bet</button>
       <p>Bet: <br />{{ betMoney }}</p>
+      <button @click="emit('playFinished', money)" :disabled="betMoney > 0 || roundActive">Finish</button>
     </div>
     <div class="points">
       <p class="pointsPlayer">{{ calculateHandValue(playerHand) }}</p>
@@ -52,7 +53,13 @@ import { ref, onMounted } from 'vue'
 import Axios from 'axios'
 import Chip from '/src/components/Chip.vue'
 
+
 const apiUrl = 'https://deckofcardsapi.com/api/deck'
+const emit = defineEmits(['playFinished'])
+
+const props = defineProps<{
+  startMoney: number
+}>()
 
 const apiKey = 'your-api-key' // Replace with your actual API key
 let deckId = ref('')
@@ -66,7 +73,7 @@ let preloaded = ref(false)
 let disableButtons = ref(true)
 
 const chipValues = [5, 10, 20, 50, 100]
-let money = ref(200)
+let money = ref(props.startMoney)
 let betMoney = ref(0)
 
 const cardBackImage = '/src/assets/cardBack.png'
@@ -134,7 +141,15 @@ const resetRound = () => {
     dealerHand.value = [];
     roundActive.value = false;
     showCard.value = false;
+    checkMoney();
   }, 2000)
+}
+
+const checkMoney = () => {
+  if (money.value <= 0 && betMoney.value <= 0) {
+    console.log("oof");
+    emit('playFinished', money.value)
+  }
 }
 
 const stay = async () => {
@@ -165,6 +180,7 @@ const updateHands = () => {
 const calculateHandValue = (hand) => {
   let value = 0
   let hasAce = false
+  let aces = 0;
 
   for (const card of hand) {
     const cardValue = card.value
@@ -172,12 +188,15 @@ const calculateHandValue = (hand) => {
 
     if (cardValue === 'ACE') {
       hasAce = true
+      aces += 1;
     }
   }
 
   // Handle Aces
-  if (hasAce && value > 21) {
-    value -= 10
+  while (aces > 0) {
+    if (hasAce && value > 21) {
+      value -= 10
+    }
   }
 
   return value
@@ -281,6 +300,7 @@ onMounted(() => {
   transition: all 0.3s ease;
 }
 
+
 .hand-enter-from {
   opacity: 0;
   transform: translateY(-8rem);
@@ -340,7 +360,6 @@ onMounted(() => {
     border: 0.2rem solid #2c1807;
     border-radius: 0.5rem;
     margin: 0.1rem;
-    position: relative;
     align-self: center;
     font-size: 12pt;
     font-weight: bold;
