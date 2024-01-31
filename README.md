@@ -32,3 +32,27 @@ Just enter the amount of money you want to play with and hit Play! You will ente
 You can pull out of the game and walk away with your score at any time as long as no round is actively played and no bet has been set. Your score will be calculated from the money you have left minus your deposit.
 
 The game ends automatically if you have no funds available anymore.
+
+# Deployment:
+
+Unfortunately after multiple hours of trying, deployment with both Vercel and Github Pages did not work. The same error came up a lot and I just could not figure out how to fix it. The site works perfectly fine when using 'npm run dev' and even after building and 'npm run preview'. But it just would not let itself be deployed. Here is the error message:
+
+```
+vite v5.0.12 building for production...
+✓ 80 modules transformed.
+dist/index.html                  0.43 kB │ gzip:  0.28 kB
+dist/assets/index-R7dIUi5h.css   2.73 kB │ gzip:  0.83 kB
+dist/assets/index-bqmCnB7M.js   98.14 kB │ gzip: 38.81 kB
+✓ built in 3.01s
+js emit is not supported
+Error in vue-tsc.js: js emit is not supported
+
+C:\Users\paulh\PhpstormProjects\Hypermedia\Blackjack\node_modules\vue-tsc\bin\vue-tsc.js:69
+                        throw err;
+                        ^
+js emit is not supported
+(Use `node --trace-uncaught ...` to show where the exception was thrown)
+
+Node.js v18.13.0
+ERROR: "type-check" exited with 1.
+```
