@@ -1,7 +1,7 @@
 <template>
   <img
     :src="chipsFolder + chipValue + '.png'"
-    alt="5 Chip"
+    :alt="chipValue + 'Chip'"
     @click="$emit('chipClicked', chipValue)"
   />
 </template>
