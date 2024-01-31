@@ -10,5 +10,10 @@
     {
       "path": "./tsconfig.vitest.json"
     }
-  ]
+  ],
+  "include": [
+    "src/**/*.ts", // Include your source files
+    "tests/**/*.ts" // Include your test files
+  ],
+  "experimentalDecorators": true
 }
