@@ -54,7 +54,7 @@
 import Vue from 'vue';
 import { ref, onMounted, defineEmits, defineProps } from 'vue'
 import Axios from 'axios'
-import Chip from '/src/components/Chip.vue'
+import Chip from '@/components/Chip.vue'
 
 const apiUrl = 'https://deckofcardsapi.com/api/deck'
 
@@ -69,9 +69,9 @@ const props = defineProps<{
 }>()
 
 let deckId = ref('')
-let playerHand = ref([])
-let dealerHand = ref([])
-let cardImages = ref({})
+let playerHand: any = ref([])
+let dealerHand: any = ref([])
+let cardImages: any = ref({})
 let roundActive = ref(false)
 let showCard = ref(false)
 let preloaded = ref(false)
@@ -99,8 +99,8 @@ const deal = async () => {
   const response = await Axios.get(`${apiUrl}/${deckId.value}/draw/?count=4`, {timeout: 5000})
   const cards = response.data.cards
 
-  playerHand.value = cards.slice(0, 2).map((card) => ({ ...card, image: card.image }))
-  dealerHand.value = cards.slice(2).map((card) => ({ ...card, image: card.image }))
+  playerHand.value = cards.slice(0, 2).map((card: any) => ({ ...card, image: card.image }))
+  dealerHand.value = cards.slice(2).map((card: any) => ({ ...card, image: card.image }))
 
   updateHands()
 }
@@ -180,7 +180,7 @@ const updateHands = () => {
   }
 }
 
-const calculateHandValue = (hand) => {
+const calculateHandValue = (hand: any) => {
   let value = 0
   let hasAce = false
   let aces = 0
@@ -205,12 +205,12 @@ const calculateHandValue = (hand) => {
   return value
 }
 
-const calculateDealerPoints = (dealerHand) => {
+const calculateDealerPoints = (dealerHand: any) => {
   if (showCard.value) {
     return calculateHandValue(dealerHand)
   } else {
     if (dealerHand.length > 0) {
-      let tempHand = dealerHand.map((x) => x)
+      let tempHand = dealerHand.map((x: any) => x)
       tempHand.splice(0, 1)
       return calculateHandValue(tempHand)
     } else {
@@ -219,7 +219,7 @@ const calculateDealerPoints = (dealerHand) => {
   }
 }
 
-const addBet = (value) => {
+const addBet = (value: number) => {
   if (money.value - value >= 0) {
     betMoney.value += value
     money.value -= value
@@ -234,12 +234,12 @@ const preloadImages = async () => {
   const cardsResponse = await Axios.get(`${apiUrl}/${deckId}/draw/?count=52`, {timeout: 5000})
   const cards = cardsResponse.data.cards
 
-  const promises = cards.map((card) => {
-    return new Promise((resolve) => {
+  const promises = cards.map((card: any) => {
+    return new Promise((resolve): void => {
       const image = new Image()
       image.onload = () => {
         cardImages.value[card.code] = image
-        resolve()
+        resolve(0)
       }
       image.src = card.image
     })

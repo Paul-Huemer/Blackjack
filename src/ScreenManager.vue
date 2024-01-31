@@ -18,17 +18,17 @@ let startMoney = ref(0)
 let score = ref(0)
 let playState = ref(1)
 
-const depositToMoney = (deposit) => {
+const depositToMoney = (deposit: any) => {
   startMoney.value = deposit.value;
   playStateChange(2);
 }
 
-const moneyToScore = (money) => {
+const moneyToScore = (money: number) => {
   score.value = money - startMoney.value
   playStateChange(3)
 }
 
-const playStateChange = (playStateNum) => {
+const playStateChange = (playStateNum: any) => {
   playState.value = playStateNum
 }
 </script>
