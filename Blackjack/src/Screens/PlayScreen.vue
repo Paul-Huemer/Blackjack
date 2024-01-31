@@ -1,5 +1,8 @@
 <template>
   <div class="gameContainer">
+    <button class="finishButton" @click="emit('playFinished', money)" :disabled="betMoney > 0 || roundActive">
+      Finish
+    </button>
     <div class="cardArea" id="dealer">
       <TransitionGroup name="hand" class="hand" id="dealerHand" tag="div" v-show="roundActive">
         <div class="card" v-for="card in dealerHand" :key="card.code">
@@ -21,7 +24,6 @@
       <button @click="hit" :disabled="disableButtons">Hit</button>
       <button @click="deal" :disabled="betMoney <= 0 || roundActive">Bet</button>
       <p>Bet: <br />{{ betMoney }}</p>
-      <button @click="emit('playFinished', money)" :disabled="betMoney > 0 || roundActive">Finish</button>
     </div>
     <div class="points">
       <p class="pointsPlayer">{{ calculateHandValue(playerHand) }}</p>
@@ -49,23 +51,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import Vue from 'vue';
+import { ref, onMounted, defineEmits, defineProps } from 'vue'
 import Axios from 'axios'
 import Chip from '/src/components/Chip.vue'
 
-
 const apiUrl = 'https://deckofcardsapi.com/api/deck'
+
+ onMounted(() => {
+  preloadImages()
+})
+
 const emit = defineEmits(['playFinished'])
 
 const props = defineProps<{
   startMoney: number
 }>()
 
-const apiKey = 'your-api-key' // Replace with your actual API key
 let deckId = ref('')
 let playerHand = ref([])
 let dealerHand = ref([])
-let cardImages = ref({}) // Store preloaded card images
+let cardImages = ref({})
 let roundActive = ref(false)
 let showCard = ref(false)
 let preloaded = ref(false)
@@ -73,24 +79,24 @@ let preloaded = ref(false)
 let disableButtons = ref(true)
 
 const chipValues = [5, 10, 20, 50, 100]
-let money = ref(props.startMoney)
-let betMoney = ref(0)
+const money = ref(props.startMoney)
+const betMoney = ref(0)
 
 const cardBackImage = '/src/assets/cardBack.png'
 const chipsFolder = '/src/assets/'
 
 const shuffleDeck = async () => {
-  const numDecks = 6 // Change this number as needed
-  const response = await Axios.get(`${apiUrl}/new/shuffle/?deck_count=${numDecks}`)
+  const numDecks = 6
+  const response = await Axios.get(`${apiUrl}/new/shuffle/?deck_count=${numDecks}`, {timeout: 5000})
   deckId.value = response.data.deck_id
 }
 
 const deal = async () => {
-  disableButtons.value = false;
+  disableButtons.value = false
   roundActive.value = true
   await shuffleDeck()
 
-  const response = await Axios.get(`${apiUrl}/${deckId.value}/draw/?count=4`)
+  const response = await Axios.get(`${apiUrl}/${deckId.value}/draw/?count=4`, {timeout: 5000})
   const cards = response.data.cards
 
   playerHand.value = cards.slice(0, 2).map((card) => ({ ...card, image: card.image }))
@@ -100,7 +106,7 @@ const deal = async () => {
 }
 
 const hit = () => {
-  Axios.get(`${apiUrl}/${deckId.value}/draw/?count=1`).then((response) => {
+  Axios.get(`${apiUrl}/${deckId.value}/draw/?count=1`, {timeout: 5000}).then((response) => {
     playerHand.value.push({ ...response.data.cards[0], image: response.data.cards[0].image })
     updateHands()
   })
@@ -108,65 +114,62 @@ const hit = () => {
 
 const dealerDraw = async () => {
   if (calculateHandValue(dealerHand.value) < 17) {
-    await Axios.get(`${apiUrl}/${deckId.value}/draw/?count=1`).then((response) => {
+    await Axios.get(`${apiUrl}/${deckId.value}/draw/?count=1`, {timeout: 5000}).then((response) => {
       dealerHand.value.push({ ...response.data.cards[0], image: response.data.cards[0].image })
       updateHands()
     })
     setTimeout(() => {
-      dealerDraw();
+      dealerDraw()
     }, 300)
   }
 }
 
 const roundLost = () => {
-  resetRound();
+  resetRound()
 }
-
 const roundWon = () => {
   money.value += betMoney.value * 2
-  resetRound();
+  resetRound()
 }
-
 const roundDraw = () => {
   money.value += betMoney.value
-  resetRound();
+  resetRound()
 }
 
 const resetRound = () => {
-  disableButtons.value = true;
-  showCard.value = true;
+  disableButtons.value = true
+  showCard.value = true
   setTimeout(() => {
-    betMoney.value = 0;
-    playerHand.value = [];
-    dealerHand.value = [];
-    roundActive.value = false;
-    showCard.value = false;
-    checkMoney();
+    betMoney.value = 0
+    playerHand.value = []
+    dealerHand.value = []
+    roundActive.value = false
+    showCard.value = false
+    checkMoney()
   }, 2000)
 }
 
 const checkMoney = () => {
   if (money.value <= 0 && betMoney.value <= 0) {
-    console.log("oof");
     emit('playFinished', money.value)
   }
 }
 
 const stay = async () => {
-  disableButtons.value = true;
-  showCard.value = true;
-  await dealerDraw();
+  disableButtons.value = true
+  showCard.value = true
+  await dealerDraw()
   setTimeout(() => {
     if (calculateHandValue(dealerHand.value) >= 17 && calculateHandValue(dealerHand.value) <= 21) {
       if (calculateHandValue(dealerHand.value) > calculateHandValue(playerHand.value)) {
-        roundLost();
+        roundLost()
       } else if (calculateHandValue(dealerHand.value) < calculateHandValue(playerHand.value)) {
-        roundWon();
+        roundWon()
       } else {
-        roundDraw();
+        roundDraw()
       }
     } else {
-      roundWon();
+      roundWon()
     }
   }, 700)
 }
@@ -180,7 +183,7 @@ const updateHands = () => {
 const calculateHandValue = (hand) => {
   let value = 0
   let hasAce = false
-  let aces = 0;
+  let aces = 0
 
   for (const card of hand) {
     const cardValue = card.value
@@ -188,15 +191,15 @@ const calculateHandValue = (hand) => {
 
     if (cardValue === 'ACE') {
       hasAce = true
-      aces += 1;
+      aces += 1
     }
   }
 
-  // Handle Aces
   while (aces > 0) {
     if (hasAce && value > 21) {
       value -= 10
     }
+    aces -= 1;
   }
 
   return value
@@ -207,13 +210,11 @@ const calculateDealerPoints = (dealerHand) => {
     return calculateHandValue(dealerHand)
   } else {
     if (dealerHand.length > 0) {
-      let tempHand = dealerHand.map((x) => x);
-      tempHand.splice(0, 1);
-      console.log("Temp Hand")
-      console.log(tempHand)
-      return calculateHandValue(tempHand);
+      let tempHand = dealerHand.map((x) => x)
+      tempHand.splice(0, 1)
+      return calculateHandValue(tempHand)
     } else {
-      return 0;
+      return 0
     }
   }
 }
@@ -223,13 +224,14 @@ const addBet = (value) => {
     betMoney.value += value
     money.value -= value
   }
+  return betMoney.value;
 }
 
 const preloadImages = async () => {
-  const deckIdResponse = await Axios.get(`${apiUrl}/new/shuffle/?deck_count=1`)
+  const deckIdResponse = await Axios.get(`${apiUrl}/new/shuffle/?deck_count=1`, {timeout: 5000})
   const deckId = deckIdResponse.data.deck_id
 
-  const cardsResponse = await Axios.get(`${apiUrl}/${deckId}/draw/?count=52`)
+  const cardsResponse = await Axios.get(`${apiUrl}/${deckId}/draw/?count=52`, {timeout: 5000})
   const cards = cardsResponse.data.cards
 
   const promises = cards.map((card) => {
@@ -247,9 +249,6 @@ const preloadImages = async () => {
   preloaded.value = true
 }
 
-onMounted(() => {
-  preloadImages()
-})
 </script>
 
 <style lang="scss">
@@ -268,7 +267,7 @@ onMounted(() => {
 }
 
 .card {
-  margin-left: -5rem;
+  margin-left: -9rem;
   filter: drop-shadow(-0.2rem 0.2rem 0.2rem black);
   height: 90%;
   width: auto;
@@ -284,14 +283,16 @@ onMounted(() => {
   justify-content: center;
   width: 100%;
   height: 90%;
-  margin-left: 2.5rem;
+  margin-left: 9rem;
   position: relative;
 }
 
 #playerHand {
+  align-self: flex-start;
   align-items: flex-start;
 }
 #dealerHand {
+  align-self: flex-end;
   align-items: flex-end;
 }
 
@@ -299,7 +300,6 @@ onMounted(() => {
 .hand-enter-active {
   transition: all 0.3s ease;
 }
-
 
 .hand-enter-from {
   opacity: 0;
@@ -318,7 +318,8 @@ onMounted(() => {
   height: 40%;
   width: 100%;
   position: relative;
-  display: block;
+  display: flex;
+  padding: 1rem 0;
   background-color: #528045;
 }
 
@@ -364,6 +365,20 @@ onMounted(() => {
     font-size: 12pt;
     font-weight: bold;
   }
+}
+
+.finishButton {
+  padding: 0.5rem 0.7rem;
+  background-color: #b58962;
+  border: 0.2rem solid #2c1807;
+  border-radius: 0.5rem;
+  margin: 0.3rem;
+  font-size: 12pt;
+  font-weight: bold;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1000;
 }
 
 .chipArea {

@@ -7,13 +7,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-
 const props = defineProps<{
   chipValue: number
   chipsFolder: string
 }>()
-const string = ref('')
 </script>
 
 <style scoped></style>

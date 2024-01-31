@@ -1,8 +1,8 @@
 <template>
   <main id="ViewContainer">
-    <StartScreen v-if="playState === 1" @play-button-pressed="playStateChange(2)" />
-    <PlayScreen v-if="playState === 2" :start-money="startMoney" @play-finished="moneyToScore"/>
-    <EndScreen v-if="playState === 3" :score="score" @return="playStateChange(1)"/>
+    <StartScreen v-if="playState === 1" @play-button-pressed="depositToMoney" />
+    <PlayScreen v-if="playState === 2" :start-money="startMoney" @play-finished="moneyToScore" />
+    <EndScreen v-if="playState === 3" :score="score" :start-money="startMoney" @return="playStateChange(1)" />
   </main>
 </template>
 
@@ -13,21 +13,24 @@ import EndScreen from '@/Screens/EndScreen.vue'
 
 import { ref } from 'vue'
 
-const startMoney = 200;
+let startMoney = ref(0)
 
-let score = ref(0);
-let playState = ref(1);
+let score = ref(0)
+let playState = ref(1)
+
+const depositToMoney = (deposit) => {
+  startMoney.value = deposit.value;
+  playStateChange(2);
+}
 
 const moneyToScore = (money) => {
-  console.log(money);
-  score.value = money - startMoney;
-  playStateChange(3);
+  score.value = money - startMoney.value
+  playStateChange(3)
 }
 
 const playStateChange = (playStateNum) => {
-  playState.value = playStateNum;
+  playState.value = playStateNum
 }
-
 </script>
 
 <style lang="scss"></style>

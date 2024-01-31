@@ -1,20 +1,19 @@
 <template>
   <div class="gameContainer">
-    <h1 id="score">Score: {{score}}</h1>
+    <h1 v-if="score <= (startMoney*-1)" class="score" id="gameOver">Game over.</h1>
+    <h1 v-if="score >= 0" class="score" id="gameOver">Congratulations!</h1>
+    <h1 class="score">Score: {{score}}</h1>
     <button id="return" @click="emit('return')">Return to Menu</button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-
 const emit = defineEmits(['return'])
 
 const props = defineProps<{
   score: number
+  startMoney: number
 }>()
-
-let score = ref(props.score);
 </script>
 
 <style lang="scss">
@@ -35,8 +34,14 @@ let score = ref(props.score);
   text-align: center;
 }
 
-#score {
+.score {
   color: white;
+  margin: 0.3rem;
+}
+
+#gameOver {
+  margin-bottom: 5rem;
+  font-size: 35pt;
 }
 
 #return {
