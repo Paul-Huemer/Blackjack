@@ -82,8 +82,8 @@ const chipValues = [5, 10, 20, 50, 100]
 const money = ref(props.startMoney)
 const betMoney = ref(0)
 
-const cardBackImage = '/images/cardBack.png'
-const chipsFolder = '/images/'
+const cardBackImage = '/src/assets/cardBack.png'
+const chipsFolder = '/src/assets/'
 
 const shuffleDeck = async () => {
   const numDecks = 6
